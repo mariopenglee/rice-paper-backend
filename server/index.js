@@ -1,20 +1,20 @@
 // server/index.js
+require('dotenv').config();
 
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const bodyParser = require('body-parser');
-
+const { v4: uuidv4 } = require('uuid');  
 const app = express();
-const port = 5001;
+const port = 3000;
 
 // Middleware
 app.use(cors());
 app.use(bodyParser.json());
 
 // MongoDB connection
-mongoose.connect('mongodb+srv://mariopeng:Maritolevi123@dev.gt34phs.mongodb.net/?retryWrites=true&w=majority&appName=dev', {
-});
+mongoose.connect(process.env.MONGODB_URI, {});
 
 const db = mongoose.connection;
 db.on('error', console.error.bind(console, 'connection error:'));
@@ -24,30 +24,46 @@ db.once('open', () => {
 
 // Define a schema
 const stateSchema = new mongoose.Schema({
+  mapId: { type: String, required: true, unique: true },
   state: Object,
 });
 
 const State = mongoose.model('State', stateSchema);
 
 // API endpoints
-app.get('/api/state', async (req, res) => {
+// endpoint to get map from id
+app.get('/api/state/:mapId', async (req, res) => {
   try {
-    const state = await State.findOne();
-    res.json(state);
+    const { mapId } = req.params;
+    const state = await State.findOne({ mapId });
+    res.json(state ? state.state : {});
   } catch (err) {
     res.status(500).send(err);
   }
 });
 
-app.post('/api/state', async (req, res) => {
+// endpoint to save map state using mapId
+app.post('/api/state/:mapId', async (req, res) => {
   try {
+    const { mapId } = req.params;
     const { state } = req.body;
-    await State.deleteMany({}); // Clear previous state
-    const newState = new State({ state });
-    await newState.save();
-    res.status(201).send(newState);
+    await State.findOneAndUpdate({ mapId }, { state }, { upsert: true });
+    res.status(201).send('State saved', state, mapId);
   } catch (err) {
     res.status(500).send(err);
+  }
+});
+
+// endpoint to create a new mapId
+app.post('/api/newmap', async (req, res) => {
+  try {
+    const mapId = uuidv4();
+    const state = {};
+    await State.create({ mapId, state });
+    res.status(201).json({ mapId });
+  } catch (err) {
+    res.status(500).send(err);
+    console.log(err);
   }
 });
 
