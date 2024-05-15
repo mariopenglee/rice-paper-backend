@@ -64,6 +64,7 @@ app.post('/api/state/:mapId', async (req, res) => {
     const { mapId } = req.params;
     const { state } = req.body;
     await State.findOneAndUpdate({ mapId }, { state }, { upsert: true });
+    io.to(mapId).emit('stateUpdated', state);
     res.status(201).send('State saved', state, mapId);
   } catch (err) {
     res.status(500).send(err);
@@ -90,7 +91,6 @@ io.on('connection', (socket) => {
   socket.on('joinMap', (mapId) => {
     socket.join(mapId);
     console.log(`User joined map: ${mapId}`);
-    io.to(mapId).emit('userJoined');
   });
 
   socket.on('disconnect', () => {
