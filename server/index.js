@@ -6,8 +6,12 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const { v4: uuidv4 } = require('uuid');  
+const { Server } = require('socket.io');
+
 const app = express();
 const port = 3000;
+const server = http.createServer(app);
+const io = new Server(server);
 
 // Middleware
 app.use(cors());
@@ -67,6 +71,21 @@ app.post('/api/newmap', async (req, res) => {
   }
 });
 
-app.listen(port, () => {
-  console.log(`Server running on ${port}`);
+// Socket.IO connection
+io.on('connection', (socket) => {
+  console.log('A user connected');
+
+  socket.on('joinMap', (mapId) => {
+    socket.join(mapId);
+    console.log(`User joined map: ${mapId}`);
+    io.to(mapId).emit('userJoined');
+  });
+
+  socket.on('disconnect', () => {
+    console.log('User disconnected');
+  });
+});
+
+server.listen(port, () => {
+  console.log(`Server running on http://localhost:${port}`);
 });
