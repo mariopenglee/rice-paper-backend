@@ -29,8 +29,11 @@ app.use(cors({
 
 app.use(bodyParser.json());
 
+
+
 // MongoDB connection
 mongoose.connect(process.env.MONGODB_URI, {});
+
 
 const db = mongoose.connection;
 db.on('error', console.error.bind(console, 'connection error:'));
@@ -45,6 +48,10 @@ const stateSchema = new mongoose.Schema({
 });
 
 const State = mongoose.model('State', stateSchema);
+
+const areStatesEqual = (state1, state2) => {
+  return JSON.stringify(state1) === JSON.stringify(state2);
+};
 
 // API endpoints
 // endpoint to get map from id
@@ -63,8 +70,12 @@ app.post('/api/state/:mapId', async (req, res) => {
   try {
     const { mapId } = req.params;
     const { state } = req.body;
-    await State.findOneAndUpdate({ mapId }, { state }, { upsert: true });
-    io.to(mapId).emit('stateUpdated', state);
+    const existingState = await State.findOne({ mapId });
+    if (!existingState || !areStatesEqual(existingState.state, state)) {
+      await State.findOneAndUpdate({ mapId }, { state }, { upsert: true });
+      io.to(mapId).emit('stateUpdated', state);
+    }
+
     res.status(201).send('State saved', state, mapId);
   } catch (err) {
     res.status(500).send(err);
