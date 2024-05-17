@@ -1,4 +1,3 @@
-// server/index.js
 require('dotenv').config();
 
 const express = require('express');
@@ -9,9 +8,9 @@ const { v4: uuidv4 } = require('uuid');
 const { Server } = require('socket.io');
 const http = require('http');
 
-
 const app = express();
 const port = process.env.PORT || 3000;
+const host = '0.0.0.0'; // Ensure the server listens on all network interfaces
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
@@ -30,11 +29,8 @@ app.use(cors({
 
 app.use(bodyParser.json());
 
-
-
 // MongoDB connection
 mongoose.connect(process.env.MONGODB_URI, {});
-
 
 const db = mongoose.connection;
 db.on('error', console.error.bind(console, 'connection error:'));
@@ -55,7 +51,6 @@ const areStatesEqual = (state1, state2) => {
 };
 
 // API endpoints
-// endpoint to get map from id
 app.get('/api/state/:mapId', async (req, res) => {
   try {
     const { mapId } = req.params;
@@ -66,7 +61,6 @@ app.get('/api/state/:mapId', async (req, res) => {
   }
 });
 
-// endpoint to save map state using mapId
 app.post('/api/state/:mapId', async (req, res) => {
   try {
     const { mapId } = req.params;
@@ -77,13 +71,12 @@ app.post('/api/state/:mapId', async (req, res) => {
       io.to(mapId).emit('stateUpdated', state);
     }
 
-    res.status(201).send('State saved', state, mapId);
+    res.status(201).send('State saved');
   } catch (err) {
     res.status(500).send(err);
   }
 });
 
-// endpoint to create a new mapId
 app.post('/api/newmap', async (req, res) => {
   try {
     const mapId = uuidv4();
@@ -110,6 +103,6 @@ io.on('connection', (socket) => {
   });
 });
 
-server.listen(port, () => {
-  console.log(`Server running on http://localhost:${port}`);
+server.listen(port, host, () => {
+  console.log(`Server running on http://${host}:${port}`);
 });
