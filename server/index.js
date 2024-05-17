@@ -66,7 +66,7 @@ app.post('/api/state/:mapId', async (req, res) => {
     const { mapId } = req.params;
     const { state } = req.body;
     const existingState = await State.findOne({ mapId });
-    if (!existingState || !areStatesEqual(existingState.state, state)) {
+    if (!areStatesEqual(existingState.state, state)) {
       await State.findOneAndUpdate({ mapId }, { state }, { upsert: true });
       io.to(mapId).emit('stateUpdated', state);
     }
