@@ -6,13 +6,14 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const { v4: uuidv4 } = require('uuid');  
 const { Server } = require('socket.io');
-const http = require('http');
+const https = require('https');
 
 const app = express();
 const port = process.env.PORT || 3000;
 const host = '0.0.0.0'; // Ensure the server listens on all network interfaces
-const server = http.createServer(app);
+const server = https.createServer(app);
 const io = new Server(server, {
+  transports: ['websocket', 'polling'],
   cors: {
     origin: process.env.FRONTEND_URL,
     methods: ['GET', 'POST'],
@@ -69,7 +70,7 @@ app.post('/api/state/:mapId', async (req, res) => {
     if (!areStatesEqual(existingState.state, state)) {
       await State.findOneAndUpdate({ mapId }, { state }, { upsert: true });
       console.log(`State updated for map: ${mapId}`);
-      //io.to(mapId).emit('stateUpdated', state);
+      io.to(mapId).emit('stateUpdated', state);
     }
 
     res.status(201).send('State saved');
@@ -104,9 +105,9 @@ io.on('connection', (socket) => {
   });
 
   socket.on('stateUpdated', (mapId, state) => {
-    io.to(mapId).emit('stateUpdated', state);
+    console.log(`a user updated the state of map: ${mapId}, ${state}`);
   });
-  
+
 });
 
 server.listen(port, host, () => {
