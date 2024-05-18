@@ -6,12 +6,12 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const { v4: uuidv4 } = require('uuid');  
 const { Server } = require('socket.io');
-const https = require('https');
+const http = require('http');
 
 const app = express();
 const port = process.env.PORT || 3000;
 const host = '0.0.0.0'; // Ensure the server listens on all network interfaces
-const server = https.createServer(app);
+const server = http.createServer(app);
 const io = new Server(server, {
   transports: ['websocket', 'polling'],
   cors: {
