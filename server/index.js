@@ -102,6 +102,11 @@ io.on('connection', (socket) => {
   socket.on('disconnect', () => {
     console.log('User disconnected');
   });
+
+  socket.on('stateUpdated', (mapId, state) => {
+    io.to(mapId).emit('stateUpdated', state);
+  });
+  
 });
 
 server.listen(port, host, () => {
