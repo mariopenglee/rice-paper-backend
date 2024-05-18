@@ -13,9 +13,6 @@ const port = process.env.PORT || 3000;
 const host = '0.0.0.0'; // Ensure the server listens on all network interfaces
 const server = http.createServer(app);
 const io = new Server(server, {
-  transports: ['websocket'],
-  pingInterval: 10000,
-  pingTimeout: 5000,
   cors: {
     origin: process.env.FRONTEND_URL,
     methods: ['GET', 'POST'],
