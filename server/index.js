@@ -102,6 +102,10 @@ app.post('/api/newmap', async (req, res) => {
 // Socket.IO connection
 io.on('connection', (socket) => {
   sendHeartbeat(socket);
+
+  setTimeout(() => sendHeartbeat(socket), 10000)
+            socket.on("pong", (_data) => {})
+  
   console.log('A user connected');
 
   socket.on('joinMap', (mapId) => {
