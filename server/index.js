@@ -13,6 +13,10 @@ const port = process.env.PORT || 3000;
 const host = '0.0.0.0'; // Ensure the server listens on all network interfaces
 const server = http.createServer(app);
 const io = new Server(server, {
+  transports: ["websocket"],
+  pingInterval: 60000,
+  pingTimeout: 60000,
+  upgradeTimeout: 30000,
   cors: {
     origin: process.env.FRONTEND_URL,
     methods: ['GET', 'POST'],
@@ -49,6 +53,11 @@ const State = mongoose.model('State', stateSchema);
 const areStatesEqual = (state1, state2) => {
   return JSON.stringify(state1) === JSON.stringify(state2);
 };
+
+const sendHeartbeat = (socket) => {
+    setTimeout(() => this.sendHeartbeat(socket), 10000)
+    socket.emit("ping", { beat: 1 })
+}
 
 // API endpoints
 app.get('/api/state/:mapId', async (req, res) => {
@@ -92,6 +101,7 @@ app.post('/api/newmap', async (req, res) => {
 
 // Socket.IO connection
 io.on('connection', (socket) => {
+  sendHeartbeat(socket);
   console.log('A user connected');
 
   socket.on('joinMap', (mapId) => {
@@ -112,3 +122,5 @@ io.on('connection', (socket) => {
 server.listen(port, host, () => {
   console.log(`Server running on http://${host}:${port}`);
 });
+
+
