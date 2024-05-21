@@ -49,10 +49,6 @@ const areStatesEqual = (state1, state2) => {
   return JSON.stringify(state1) === JSON.stringify(state2);
 };
 
-const sendHeartbeat = (socket) => {
-    setTimeout(() => this.sendHeartbeat(socket), 10000)
-    socket.emit("ping", { beat: 1 })
-}
 
 // API endpoints
 app.get('/api/state/:mapId', async (req, res) => {
@@ -96,11 +92,7 @@ app.post('/api/newmap', async (req, res) => {
 
 // Socket.IO connection
 io.on('connection', (socket) => {
-  sendHeartbeat(socket);
 
-  setTimeout(() => sendHeartbeat(socket), 10000)
-            socket.on("pong", (_data) => {})
-  
   console.log('A user connected');
 
   socket.on('joinMap', (mapId) => {
