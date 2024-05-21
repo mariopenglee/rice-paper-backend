@@ -17,11 +17,6 @@ const io = new Server(server, {
   pingInterval: 60000,
   pingTimeout: 60000,
   upgradeTimeout: 30000,
-  cors: {
-    origin: process.env.FRONTEND_URL,
-    methods: ['GET', 'POST'],
-    allowedHeaders: ['Content-Type'],
-  },
 });
 
 // Middleware
