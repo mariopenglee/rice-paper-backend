@@ -8,6 +8,7 @@ const { v4: uuidv4 } = require('uuid');
 const { Server } = require('socket.io');
 const http = require('http');
 
+
 const app = express();
 const port = process.env.PORT || 3000;
 const host = '0.0.0.0'; // Ensure the server listens on all network interfaces
@@ -22,7 +23,7 @@ const io = new Server(server, {
 // Middleware
 app.use(cors({
   origin: process.env.FRONTEND_URL,
-  methods: ['GET', 'POST'],
+  methods: ['GET', 'POST', 'PATCH'],
   allowedHeaders: ['Content-Type'],
 }));
 
@@ -41,6 +42,7 @@ db.once('open', () => {
 const stateSchema = new mongoose.Schema({
   mapId: { type: String, required: true, unique: true },
   state: Object,
+  version: { type: Number, default: 0 },
 });
 
 const State = mongoose.model('State', stateSchema);
@@ -55,22 +57,43 @@ app.get('/api/state/:mapId', async (req, res) => {
   try {
     const { mapId } = req.params;
     const state = await State.findOne({ mapId });
-    res.json(state ? state.state : {});
+    res.json(state ? state : {});
   } catch (err) {
     res.status(500).send(err);
   }
 });
-
-app.post('/api/state/:mapId', async (req, res) => {
+app.patch('/api/state/:mapId', async (req, res) => {
   try {
     const { mapId } = req.params;
-    const { state } = req.body;
-    const existingState = await State.findOne({ mapId });
-    if (!areStatesEqual(existingState.state, state)) {
-      await State.findOneAndUpdate({ mapId }, { state }, { upsert: true });
-      console.log(`State updated for map: ${mapId}`);
-      io.to(mapId).emit('stateUpdated', state);
+    const { state, version } = req.body;
+
+    const currentState = await State.findOne({ mapId });
+
+    if (!currentState) {
+      return res.status(404).send('Map not found');
     }
+
+    if (currentState.version !== version) {
+      return res.status(409).send('Version conflict');
+    }
+
+    if (areStatesEqual(currentState.state, state)) {
+      return res.status(200).send('State unchanged');
+    }
+
+    // Merge the incoming state with the current state
+    const newState = {
+      ...currentState.state,
+      ...state
+    };
+
+    await State.updateOne(
+      { mapId },
+      { $set: { state: newState, version: currentState.version + 1 } }
+    );
+
+    io.to(mapId).emit('stateUpdated', newState, currentState.version + 1);
+    console.log(`State updated for map: ${mapId}`);
 
     res.status(201).send('State saved');
   } catch (err) {
@@ -104,8 +127,8 @@ io.on('connection', (socket) => {
     console.log('User disconnected');
   });
 
-  socket.on('stateUpdated', (mapId, state) => {
-    console.log(`a user updated the state of map: ${mapId}, ${state}`);
+  socket.on('stateUpdated', (mapId, state, version) => {
+    console.log(`a user updated the state of map: ${mapId}, ${state}, ${version}`);
   });
 
 });
